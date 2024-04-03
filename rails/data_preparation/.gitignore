@@ -1,0 +1,12 @@
+**/__pycache__/
+*.py[cod]
+*$py.class
+**/.DS_Store
+.ipynb_checkpoints*
+.mypy_cache/*
+
+
+rails/wagons_data/*
+**/temp_xls/** */
+geodata/*
+
