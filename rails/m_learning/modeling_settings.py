@@ -43,7 +43,6 @@ def declare_keras_models(num_features):
             return result
 
     def TensorFlow_Relu_Elu_Selu_Nadam():
-        print('Relu_Elu_Selu_Nadam')
         model = keras.Sequential([layers.BatchNormalization(),
                                   layers.Dense(TF_neurons, activation='relu', input_shape=(None, num_features)),
                                   layers.BatchNormalization(),
@@ -58,7 +57,6 @@ def declare_keras_models(num_features):
         return model
 
     def TensorFlow_Softplus_Nadam():
-        print('Softplus_Nadam')
         model = keras.Sequential([layers.BatchNormalization(),
                                   layers.Dense(TF_neurons, activation='softplus', input_shape=(None, num_features)),
                                   layers.BatchNormalization(),
@@ -72,7 +70,6 @@ def declare_keras_models(num_features):
         return model
 
     def TensorFlow_Synthetic():
-        print('TensorFlow_Synthetic')
         model = keras.Sequential([layers.BatchNormalization(),
                                   layers.Dense(TF_neurons, activation='relu', input_shape=(None, num_features)),
                                   layers.BatchNormalization(),
@@ -87,7 +84,6 @@ def declare_keras_models(num_features):
         return model
 
     def TensorFlow_KeraTune_1():
-        print('TensorFlow_KeraTune_1')
         model = keras.Sequential([layers.BatchNormalization(),
                                   layers.Dense(192, activation='selu', input_shape=(None, num_features)),
                                   layers.BatchNormalization(),
@@ -104,7 +100,6 @@ def declare_keras_models(num_features):
         return model
 
     def TensorFlow_KeraTune_2():
-        print('TensorFlow_KeraTune_2')
         model = keras.Sequential([layers.BatchNormalization(),
                                   layers.Dense(288, activation='relu', input_shape=(None, num_features)),
                                   layers.Dropout(0.2),
@@ -125,7 +120,6 @@ def declare_keras_models(num_features):
         return model
 
     def TensorFlow_KeraTune_Conv_1():
-        print('TensorFlow_KeraTune_Conv_1')
         model = keras.Sequential()
         input_shape = (num_features,)
         model.add(keras.layers.Input(shape=input_shape))
@@ -166,7 +160,6 @@ def declare_keras_models(num_features):
         return model
 
     def TensorFlow_KeraTune_Conv_2():
-        print('TensorFlow_KeraTune_Conv_2')
         input = keras.layers.Input(shape=(None, num_features))
         x = keras.layers.BatchNormalization()(input)
         x = Expand()(x, axis=2)
@@ -190,7 +183,6 @@ def declare_keras_models(num_features):
         return model
 
     def TensorFlow_KeraTune_Conv_3():
-        print('TensorFlow_KeraTune_Conv_3')
         inputs = keras.layers.Input(shape=(None, num_features))
         x1 = keras.layers.Dense(32, activation='relu')(inputs)
         reshaped_inputs = keras.layers.Reshape((2, 2, 8))(x1)
@@ -210,7 +202,6 @@ def declare_keras_models(num_features):
         return model
 
     def TensorFlow_KeraTune_Conv_4():
-        print('TensorFlow_KeraTune_Conv_4')
         model = keras.Sequential()
         model.add(keras.layers.Conv1D(64, kernel_size=2, activation='tanh', input_shape=(num_features, 1)))
         model.add(keras.layers.BatchNormalization())
@@ -227,7 +218,6 @@ def declare_keras_models(num_features):
         return model
 
     def TensorFlow_KeraTune_Conv_1Flat():
-        print('TensorFlow_KeraTune_Conv_1Flat')
         input = keras.layers.Input(shape=(None, num_features))
         x = keras.layers.BatchNormalization()(input)
         x = Expand()(x, axis=2)
@@ -254,7 +244,6 @@ def declare_keras_models(num_features):
         return model
 
     def TensorFlow_KeraTune_Conv_2Flat():
-        print('TensorFlow_KeraTune_Conv_2Flat')
         input = keras.layers.Input(shape=(None, num_features))
         x = keras.layers.BatchNormalization()(input)
         x = Expand()(x, axis=2)
@@ -277,7 +266,6 @@ def declare_keras_models(num_features):
         return model
 
     def TensorFlow_KeraTune_Conv_3Flat():
-        print('TensorFlow_KeraTune_Conv_3Flat')
         num_conv_layers = 4
         num_dropouts = 1
         dropout_rate = 0.1671256121594838

@@ -78,7 +78,7 @@ def create_models(df: pd.DataFrame, **kwargs) -> dict[str, keras.Model]:
     for name in keras_list:
         print(f'PCA , {name}')
         X_PCA, _, y_pca, _ = train_test_split(PCA_train, y_PCA, train_size=0.75)
-        PCA_models[name].fit(X_PCA, y_pca, validation_data=(PCA_val, y_PCA_val), batch_size=batch_size, epochs=epochs,  callbacks=[early_stop])
+        PCA_models[name].fit(X_PCA, y_pca, validation_data=(PCA_val, y_PCA_val), batch_size=batch_size, epochs=epochs, callbacks=[early_stop])
         metrics = get_model_metrics(PCA_models[name], PCA_test, y_PCA_test)
         print(f' PCA model {name} metrics - MAE: {metrics[0]}, MSE: {metrics[1]}, RMSE: {metrics[2]}')
         PCA_models[name].save(f'{path}/update_PCA_{name}.keras')
@@ -178,13 +178,16 @@ def update_models(df: pd.DataFrame, **kwargs) -> dict[str, keras.Model]:
 
 def get_models_list_for_prediction(models: list[keras.Model], df: pd.DataFrame) -> list[str]:
     update_cut = mds.DEFAULT_TRAINING_DATE_CUT
+    data = get_data(df.copy(), update_cut=update_cut, training=True, diff=False, just_PCA=False, update=True)
 
-    _, PCA_test, _, test = get_data(df.copy(), update_cut=update_cut, training=True, diff=False,
-                                    just_PCA=False, update=True)
+    _, PCA_test = data['PCA']
+    _, test = data['no_PCA']
+    data_no_update = get_data(df.copy(), update_cut=update_cut, training=True, diff=False, just_PCA=False, update=False)
+    _, PCA_test_no_update = data_no_update['PCA']
+    _, test_no_update = data_no_update['no_PCA']
+
     y_PCA_test = PCA_test.pop('target')
     y_no_PCA_test = test.pop('target')
-    _, PCA_test_no_update, _, test_no_update = get_data(df.copy(), update_cut, training=True, diff=False,
-                                                        just_PCA=False, update=False)
     y_PCA_test_no_update = PCA_test_no_update.pop('target')
     y_no_PCA_test_no_update = test_no_update.pop('target')
 
@@ -220,6 +223,7 @@ def prediction(df: pd.DataFrame) -> pd.DataFrame:
 
     print('Making predictions')
     update_cut = mds.DEFAULT_TRAINING_DATE_CUT
+    
     data = get_data(df.copy(), update_cut=update_cut, training=False, update=False)
     update_data = get_data(df.copy(), update_cut=update_cut, training=False, diff=False, just_PCA=False, update=True)
 

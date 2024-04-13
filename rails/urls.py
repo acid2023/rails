@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from .views import road_area_detail, upload_xls_file, process_files, create_rails_models, update_rails_models
+from .views import road_area_detail, upload_xls_file, process_files, create_rails_models, update_rails_models, make_prediction
 
 
 urlpatterns = [
@@ -27,4 +27,5 @@ urlpatterns = [
     path('upload/', upload_xls_file, name='upload_xls_file'),
     path('create_models/', create_rails_models),
     path('update_models/', update_rails_models),
+    path('make_prediction/', make_prediction),
 ]

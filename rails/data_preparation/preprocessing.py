@@ -134,7 +134,7 @@ def get_data(data: pd.DataFrame, update_cut: str, **kwargs) -> dict[str, tuple[p
 
         update = get_no_leak(df.copy(), update_cut, predict=True)
 
-        update = preprocessing(update.copy()).drop(columns=['target'])
+        update = preprocessing(update.copy()).drop(columns=['time_to_home'])
 
         no_PCA_update = update.copy()
 
@@ -157,8 +157,8 @@ def predict_arrival(data: dict[str, pd.DataFrame], model, **kwargs):
 
     # forecast['duration'] = forecast['duration'].apply(lambda x: x + 1 if x >= 0 else 1)
 
-    forecast['update'] = to_datetime_days(forecast['update'])
-
+    forecast['update'] = forecast['update'].apply(to_datetime_days)
+                                            
     forecast['update'] = pd.to_datetime(forecast['update'])
     forecast['duration'] = pd.to_timedelta(forecast['duration'], unit='D')
 
