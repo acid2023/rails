@@ -3,6 +3,7 @@ import os
 from shapely.wkt import loads
 import urllib.parse
 import pickle
+import tempfile
 
 
 from django.shortcuts import render
@@ -15,7 +16,7 @@ from django.urls import reverse
 
 from rails.models import Station, Road
 from rails.utils.files_parse import process_xls_file
-from rails.m_learning.modeling import create_models, update_models
+from rails.m_learning.modeling import create_models, update_models, prediction
 
 
 def road_area_detail(request: HttpRequest, area_id: int) -> HttpResponse:
@@ -106,7 +107,7 @@ def upload_xls_file(request: HttpRequest) -> HttpResponse:
 def create_rails_models(request: HttpRequest) -> HttpResponse:
     with open('routes.pkl', 'rb') as f:
         routes = pickle.load(f)
-    models = create_models(routes)
+    create_models(routes)
 
     return HttpResponse('models created')
 
@@ -114,6 +115,24 @@ def create_rails_models(request: HttpRequest) -> HttpResponse:
 def update_rails_models(request: HttpRequest) -> HttpResponse:
     with open('routes.pkl', 'rb') as f:
         routes = pickle.load(f)
-    models = update_models(routes)
+    update_models(routes)
 
     return HttpResponse('models updated')
+
+
+def make_prediction(request: HttpRequest) -> HttpResponse:
+    with open('routes.pkl', 'rb') as f:
+        routes = pickle.load(f)
+    forecast = prediction(routes)
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
+    forecast.to_excel(temp_file.name, index=False)
+
+    with open(temp_file.name, 'rb') as f:
+        xlsx_content = f.read()
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="forecast.xlsx"'
+    response.content = xlsx_content
+    response.write('Forecast completed')
+
+    return response
