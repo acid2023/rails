@@ -158,11 +158,14 @@ def process_xls_file(filename: str, source: str) -> list[str] | None:
                     loaded=loaded)
                 the_route.locations = {}
                 the_route.save()
+            else:
+                the_route = None
             problem_stations += ['no route ' + wagon_num + ' ' + str(route_start) + str(start_point) + ' ' + str(dest_point)]
 
         try:
-            the_route.set_ops_for_date(update, ops_point, ops_date, ops)
-            the_route.save()
+            if the_route is not None:
+                the_route.set_ops_for_date(update, ops_point, ops_date, ops)
+                the_route.save()
         except ValueError:
             pass
     return problem_stations

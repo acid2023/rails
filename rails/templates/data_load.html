@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Loading Data from DB</title>
+</head>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <button type="submit">Start Loading</button>
+</form>
+<body>
+    <h1>Loading Data from DB</h1>
+    <div id="view-status"></div>
+    <script>
+        const socket = new WebSocket('ws://127.0.0.1:8000/ws/view_status/');
+        const statusElement = document.getElementById('view-status');
+        const messageList = document.createElement('ul');
+    
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+    
+            // Create a <li> element for each message and append it to the messageList
+            const messageItem = document.createElement('li');
+            messageItem.textContent = data['message'];
+            messageList.appendChild(messageItem);
+    
+            // Update the statusElement with the messageList
+            statusElement.innerHTML = ''; // Clear existing content
+            statusElement.appendChild(messageList);
+    
+            // Scroll to the bottom of the statusElement
+            statusElement.scrollTop = statusElement.scrollHeight;
+        };
+    </script>
+</body>
+</html>

@@ -47,7 +47,6 @@ def get_date(date: Any) -> str | None:
             return datetime.datetime.strptime(str(date), '%d.%m.%Y').strftime('%Y-%m-%d')
 
 
-
 def get_num(wagon_num: Any) -> str | None:
     if wagon_num == 'NaT' or wagon_num == '' or pd.isnull(wagon_num) or pd.isna(wagon_num):
         return None
