@@ -12,6 +12,17 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 
+import os
+
+# Define custom variables
+RUNNING_IN_DOCKER = os.getenv('RUNNING_IN_DOCKER', 'false') == 'true'
+
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+DB_NAME = os.getenv('DB_NAME')
+
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -26,7 +37,7 @@ SECRET_KEY = 'django-insecure-pz$daqvkpon!xp2jk$_fp@(_ntft&$wf@5%e*33h9m9rthrh3w
 DEBUG = True
 
 # settings.py
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']  # Add the hostname or IP address of the machine
+ALLOWED_HOSTS = ['*']  # Add the hostname or IP address of the machine
 
 
 # Application definition
@@ -34,7 +45,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']  # Add the hostname or IP ad
 INSTALLED_APPS = [
     'rails',
     'channels',
-    # 'daphne',
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,9 +53,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.gis',
+    
 
 
 ]
+
+if not RUNNING_IN_DOCKER:
+    INSTALLED_APPS += ['django_extensions',]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -78,29 +93,40 @@ WSGI_APPLICATION = 'rails.wsgi.application'
 
 ASGI_APPLICATION = 'rails.asgi.application'
 
-CHANNEL_LAYERS = {
+REDIS_CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+            "hosts": [("redis" if RUNNING_IN_DOCKER else "localhost", 6379)],
         },
     },
 }
+
+DAPHNE_CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
+
+CHANNEL_LAYERS = REDIS_CHANNEL_LAYERS
+
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'trains',
-        'HOST': 'localhost',
+        'NAME': DB_NAME,
+        'HOST': 'db' if RUNNING_IN_DOCKER else 'localhost',
         'PORT': '5432',
+        'USER': DB_USER,
+        'PASSWORD': DB_PASSWORD,
 
     }
 }
 DATA_UPLOAD_MAX_NUMBER_FILES = 5000
-GEOS_LIBRARY_PATH = '/opt/homebrew/Cellar/geos/3.12.1/lib/libgeos_c.dylib'
-GDAL_LIBRARY_PATH = '/opt/homebrew/Cellar/gdal/3.8.4_3/lib/libgdal.34.dylib'
+GEOS_LIBRARY_PATH = '/opt/homebrew/Cellar/geos/3.12.1/lib/libgeos_c.dylib' if not RUNNING_IN_DOCKER else '/usr/lib/aarch64-linux-gnu/libgeos_c.so'
+GDAL_LIBRARY_PATH = '/opt/homebrew/Cellar/gdal/3.8.4_3/lib/libgdal.34.dylib' if not RUNNING_IN_DOCKER else '/usr/lib/aarch64-linux-gnu/libgdal.so'
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

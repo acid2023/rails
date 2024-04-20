@@ -1,0 +1,10 @@
+FROM postgres:latest
+
+# Install PostGIS dependencies
+RUN apt-get update && apt-get install -y libproj-dev gdal-bin
+
+# Install PostGIS extension
+RUN apt-get install -y postgresql-16-postgis-3
+
+# Restore the database from a dump file
+COPY database_dump.sql /docker-entrypoint-initdb.d/

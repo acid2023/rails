@@ -5,6 +5,8 @@
 </head>
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
+    <input type="checkbox" id="full_load" name="full_load">
+    <label for="full_load">Full Load</label>
     <button type="submit">Start Loading</button>
 </form>
 <body>

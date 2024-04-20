@@ -14,14 +14,26 @@
         const socket = new WebSocket('ws://127.0.0.1:8000/ws/view_status/');
         const statusElement = document.getElementById('view-status');
         const messageList = document.createElement('ul');
+        let isNewLinePreviousLine = false;
     
         socket.onmessage = function(event) {
             const data = JSON.parse(event.data);
+
+            const message = typeof data['message'] === 'string' ? data['message']: data['message'][0] ;
+
+            const isNewLine = message.includes('\r') || message.includes('\b');
+
+            if (isNewLinePreviousLine) {
+                messageList.removeChild(messageList.lastChild);
+            }
+
+            isNewLinePreviousLine = isNewLine;
     
             // Create a <li> element for each message and append it to the messageList
             const messageItem = document.createElement('li');
-            messageItem.textContent = data['message'];
-            messageList.appendChild(messageItem);
+            messageItem.textContent = message;
+            messageList.appendChild(messageItem);   
+
     
             // Update the statusElement with the messageList
             statusElement.innerHTML = ''; // Clear existing content

@@ -19,7 +19,8 @@ from django.urls import path
 from channels.routing import URLRouter, ProtocolTypeRouter
 from channels.auth import AuthMiddlewareStack
 
-from .views import road_area_detail, upload_xls_file, process_files, create_rails_models, update_rails_models, make_prediction, load_data
+from .views import road_area_detail
+from .views import upload_xls_file, process_files, create_rails_models, update_rails_models, make_prediction, load_data, show_metrics
 from .consumers import ViewStatusConsumer
 
 websocket_urlpatterns = [
@@ -35,6 +36,7 @@ urlpatterns = [
     path('create_models/', create_rails_models),
     path('update_models/', update_rails_models),
     path('make_prediction/', make_prediction),
+    path('show_metrics/', show_metrics),
     *websocket_urlpatterns,
 ]
 

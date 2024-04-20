@@ -1,0 +1,34 @@
+# Ignore specific files
+.git
+node_modules
+*.log
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Ignore specific directories
+logs/
+temp/
+wagon_data/
+migrations/
+db_dumps/
+
+# mypy
+.mypy_cache/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+**/__pycache__/
+*.py[cod]
+*$py.class
+temp_xls
+old_requirements.txt
+
+makefile
+dockerfile
+dockerfile.db
+docker-compose.yaml
+*.sh
+env_data

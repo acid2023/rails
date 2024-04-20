@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 
 from rails.models import Route
@@ -42,8 +44,14 @@ def process_xls_file(filename: str, source: str) -> list[str] | None:
 
     if source not in ['rzhd', 'tts', 'sgtrans', 'komtrans']:
         raise ValueError(f"Source {source} is not supported")
+    RUNNING_IN_DOCKER = os.getenv('RUNNING_IN_DOCKER', 'false') == 'true'
+    
+    if RUNNING_IN_DOCKER:
+        excel_file_path = '/app/rails/utils/stations_mapping.xlsx'
+    else:
+        excel_file_path = 'rails/utils/stations_mapping.xlsx'
 
-    mapping = pd.read_excel('/Users/sergeykuzmin/projects/rails/rails/utils/stations_mapping.xlsx',
+    mapping = pd.read_excel(excel_file_path,
                             header=1).set_index('Значение')['замена'].to_dict()
     if filename.endswith('.xlsx'):
         formated_date = extract_date_from_filename(filename, source)

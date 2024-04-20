@@ -1,0 +1,40 @@
+version: '3'
+services:
+  test:
+    image: test
+    container_name: rails_code
+    environment:
+      - RUNNING_IN_DOCKER=true
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+    networks:
+      - railsNetwork
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+
+  db:
+    container_name: postgre_db
+    image: trains:latest
+    volumes:
+      - /opt/homebrew/var/postgresql@14/postgre_docker/database_dump.sql:/docker-entrypoint-initdb.d/database_dump.sql
+    ports:
+      - 5432:5432
+    networks:
+      - railsNetwork
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+
+  redis:
+    image: redis
+    networks:
+      - railsNetwork
+    ports:
+      - 6379:6379
+
+networks:
+  railsNetwork:

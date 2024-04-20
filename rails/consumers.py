@@ -35,7 +35,7 @@ class ViewStatusConsumer(AsyncWebsocketConsumer):
         # Receive message from WebSocket
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
-
+        print(f'Received message: {message}')
         # Send message to room group
         #await self.channel_layer.group_send(
         #    self.group_name,
@@ -52,3 +52,6 @@ class ViewStatusConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'message': message
         }))
+
+    async def send_message(self, message):
+        self.send(text_data=message)
