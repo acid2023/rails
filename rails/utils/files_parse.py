@@ -45,7 +45,7 @@ def process_xls_file(filename: str, source: str) -> list[str] | None:
     if source not in ['rzhd', 'tts', 'sgtrans', 'komtrans']:
         raise ValueError(f"Source {source} is not supported")
     RUNNING_IN_DOCKER = os.getenv('RUNNING_IN_DOCKER', 'false') == 'true'
-    
+
     if RUNNING_IN_DOCKER:
         excel_file_path = '/app/rails/utils/stations_mapping.xlsx'
     else:

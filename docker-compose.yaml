@@ -2,6 +2,8 @@ services:
   test:
     image: test
     container_name: rails_code
+    env_file:
+      - .env
     environment:
       - RUNNING_IN_DOCKER=true
       - DB_NAME=${DB_NAME}

@@ -38,7 +38,7 @@ def get_data_from_bd(full: bool = True) -> pd.DataFrame:
                     routes_to_load.append(route)
     else:
         routes = pd.DataFrame(columns=['num', 'update', 'route', 'route_id', 'station', 'station_id',
-                                    'lat', 'lon', 'd_left', 'time_to_home', 'start_date', 'arrival'])
+                                       'lat', 'lon', 'd_left', 'time_to_home', 'start_date', 'arrival'])
         routes_to_load = home_routes
 
     total = len(routes_to_load)

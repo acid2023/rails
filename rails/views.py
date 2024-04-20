@@ -4,7 +4,7 @@ from shapely.wkt import loads
 import urllib.parse
 import pickle
 import tempfile
-from asgiref.sync import async_to_sync 
+from asgiref.sync import async_to_sync
 
 from django.shortcuts import render
 from django.core.files.storage import FileSystemStorage
@@ -74,7 +74,7 @@ def process_files(request: HttpRequest) -> HttpResponse:
         if source:
             problem_stations += process_xls_file(correct_filename, source)
         fs.delete(correct_filename)
-        async_to_sync(channel_layer.group_send)('view_status', 
+        async_to_sync(channel_layer.group_send)('view_status',
                                                 {'type': 'view_status_update',
                                                  'message': f'{filename} processed'})
     return render(request, 'processed.html', {'problem_stations': problem_stations})
@@ -88,7 +88,6 @@ def upload_xls_file(request: HttpRequest) -> HttpResponse:
         else:
             return uploaded_file.name
 
-
     if request.method == 'POST' and 'files' in request.FILES:
         uploaded_files = request.FILES.getlist('files')
         files = []
@@ -101,14 +100,13 @@ def upload_xls_file(request: HttpRequest) -> HttpResponse:
             for uploaded_file in uploaded_files:
                 uploaded_filename = get_filename(uploaded_file)
                 filename = urllib.parse.quote(uploaded_filename)
-                #print(filename)
                 file_path = os.path.join(temp_folder, filename)
                 uploaded_file_path = os.path.join(temp_folder, uploaded_filename)
                 files += [file_path]
                 fs.save(uploaded_file_path, uploaded_file)
 
         url = reverse('process_files') + '?files=' + ','.join(files)
-        #print('url ', url)
+
         return HttpResponseRedirect(url)
 
     return render(request, 'upload_xls.html')
@@ -164,7 +162,7 @@ def make_prediction(request: HttpRequest) -> HttpResponse:
 
     if request.method == 'GET':
         return render(request, 'prediction.html')
-    elif request.method == 'POST': 
+    elif request.method == 'POST':
         filename = 'rails/pkl_files/routes.pkl'
         with open(filename, 'rb') as f:
             routes = pickle.load(f)
@@ -182,13 +180,14 @@ def make_prediction(request: HttpRequest) -> HttpResponse:
 
     return response
 
+
 def show_metrics(request: HttpRequest) -> HttpResponse:
     consumer = ViewStatusConsumer()
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_add)('view_status', consumer.channel_name)
     if request.method == 'GET':
         return render(request, 'metrics.html')
-    elif request.method == 'POST': 
+    elif request.method == 'POST':
         filename = 'rails/pkl_files/routes.pkl'
         with open(filename, 'rb') as f:
             routes = pickle.load(f)

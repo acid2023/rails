@@ -5,10 +5,8 @@ import os
 from tabulate import tabulate
 from contextlib import contextmanager
 import sys
-from functools import partial
 
 import keras
-import tensorflow as tf
 import sklearn.metrics
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import train_test_split
@@ -43,7 +41,6 @@ def capture_output(callback):
 
 
 def announce(text, channel_layer) -> None:
-    #text = '\n'.join(text)
     async_to_sync(channel_layer.group_send)('view_status', {'type': 'view_status_update', 'message': text})
 
 
@@ -216,7 +213,7 @@ def update_models(df: pd.DataFrame, channel_layer, **kwargs) -> dict[str, keras.
 
 
 def get_models_list_for_prediction(models: list[keras.Model], df: pd.DataFrame) -> list[str]:
-    
+
     update_cut = mds.DEFAULT_TRAINING_DATE_CUT
     data = get_data(df.copy(), update_cut=update_cut, training=True, diff=False, just_PCA=False, update=True)
 
@@ -259,11 +256,11 @@ def prediction(df: pd.DataFrame, channel_layer) -> pd.DataFrame:
     announce('Selecting best performing models', channel_layer)
     models_list = get_models_list_for_prediction(models, df.copy())
     prediction_models = {name: models[name] for name in models_list}
-    announce('Models selected',channel_layer)
+    announce('Models selected', channel_layer)
 
     announce('Making predictions', channel_layer)
     update_cut = mds.DEFAULT_TRAINING_DATE_CUT
-    
+
     data = get_data(df.copy(), update_cut=update_cut, training=False, update=False)
     update_data = get_data(df.copy(), update_cut=update_cut, training=False, diff=False, just_PCA=False, update=True)
 
@@ -299,7 +296,6 @@ def show_models_metrics(df: pd.DataFrame, channel_layer) -> None:
 
     models = load_models(channel_layer)
     update_cut = mds.DEFAULT_TRAINING_DATE_CUT
-    history_cut = '2023-06-01'
     data = get_data(df.copy(), update_cut=update_cut, training=True, diff=False, just_PCA=False, update=True)
 
     _, PCA_test = data['PCA']
@@ -310,7 +306,7 @@ def show_models_metrics(df: pd.DataFrame, channel_layer) -> None:
     data_no_update = get_data(df.copy(), update_cut=update_cut, training=True, diff=False, just_PCA=False, update=False)
     _, PCA_test_no_update = data_no_update['PCA']
     _, test_no_update = data_no_update['no_PCA']
-    
+
     y_PCA_test_no_update = PCA_test_no_update.pop('target')
     y_no_PCA_test_no_update = test_no_update.pop('target')
     metrics = {}
