@@ -121,3 +121,4 @@ venv.bak/
 *.keras
 
 env_data
+.env
