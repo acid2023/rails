@@ -1,7 +1,11 @@
 import pandas as pd
 from datetime import datetime
+from asgiref.sync import async_to_sync
+
+from channels.layers import get_channel_layer
 
 from rails.models import Station, Route
+from rails.consumers import ViewStatusConsumer
 
 
 def arrival_date(locations: dict[str, dict[str, str]]) -> str | None:
@@ -26,8 +30,14 @@ def get_data_from_bd() -> pd.DataFrame:
                                    'lat', 'lon', 'd_left', 'time_to_home', 'start_date', 'arrival'])
 
     total = len(home_routes)
+    consumer = ViewStatusConsumer()
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_add)('view_status', consumer.channel_name)
+
     for idx, route in enumerate(home_routes):
-        print(f" processing {idx+1} of {total} - route {route}")
+        message = f" processing {idx+1} of {total} - route {route}"
+        async_to_sync(channel_layer.group_send)('view_status', {'type': 'view_status_update', 'message': message})
+
         for update, values in route.locations.items():
 
             num = route.wagon.num

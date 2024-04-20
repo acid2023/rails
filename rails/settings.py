@@ -33,7 +33,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']  # Add the hostname or IP ad
 
 INSTALLED_APPS = [
     'rails',
-    # 'channels',
+    'channels',
     # 'daphne',
     'django.contrib.admin',
     'django.contrib.auth',

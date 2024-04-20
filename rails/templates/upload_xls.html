@@ -5,19 +5,30 @@
 </head>
 <body>
     <h1>Upload XLS File</h1>
-    {% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-        <li>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
     <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      <input type="file" name="files" webkitdirectory multiple>
-      <button type="submit">Upload</button>
-  </form>
+        {% csrf_token %}
+        <input type="file" name="files"  multiple>
+        <button type="submit">Upload</button>
+    </form>
+    <div id="view-status"></div>
+    <script>
+        // const socket = new WebSocket('ws://' + window.location.host + '/ws/view_status/');
+        const socket = new WebSocket('ws://127.0.0.1:8000/ws/view_status/');
+        const statusElement = document.getElementById('view-status');
+        const messageList = document.createElement('ul'); // Create a <ul> element to hold the messages
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+
+            // Create a <li> element for each message and append it to the messageList
+            const messageItem = document.createElement('li');
+            messageItem.textContent = data['message'];
+            messageList.appendChild(messageItem);
     
+            // Update the statusElement with the messageList
+            statusElement.innerHTML = ''; // Clear existing content
+            statusElement.appendChild(messageList);
+        };
+        
+    </script>
 </body>
 </html>
-

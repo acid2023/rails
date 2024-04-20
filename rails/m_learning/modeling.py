@@ -9,11 +9,16 @@ import sklearn.metrics
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import train_test_split
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
 import rails.m_learning.modeling_settings as mds
 from rails.data_preparation.preprocessing import get_data, predict_arrival
+from rails.consumers import ViewStatusConsumer
 
 
 def get_model_metrics(model: keras.Model | object, X_test: pd.DataFrame, y_test: pd.DataFrame) -> tuple[float, float, float]:
+
     y_pred = model.predict(X_test)
     mae = mean_absolute_error(y_test, y_pred)
     mse = mean_squared_error(y_test, y_pred)
@@ -27,6 +32,14 @@ def get_model_metrics(model: keras.Model | object, X_test: pd.DataFrame, y_test:
 
 
 def load_models() -> dict[str, keras.Model]:
+    consumer = ViewStatusConsumer()
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_add)('view_status', consumer.channel_name)
+
+    def announce(*text) -> None:
+        text = '\n'.join(text)
+        async_to_sync(channel_layer.group_send)('view_status', {'type': 'view_status_update', 'message': text})
+
     models = {}
     path = mds.MODELS_FOLDER
 
@@ -40,13 +53,19 @@ def load_models() -> dict[str, keras.Model]:
         try:
             models[filename] = keras.models.load_model(file)
         except Exception as e:
-            print(f'Errors when loading model {filename}: %s', e)
+            announce(f'Errors when loading model {filename}')
             continue
-    print(f'total {len(models)} models loaded')
+    announce(f'total {len(models)} models loaded')
     return models
 
 
 def create_models(df: pd.DataFrame, **kwargs) -> dict[str, keras.Model]:
+    def announce(*text) -> None:
+        async_to_sync(channel_layer.group_send)('view_status', {'type': 'view_status_update', 'message': text})
+
+    consumer = ViewStatusConsumer()
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_add)('view_status', consumer.channel_name)
     history_cut = kwargs.get('history_cut', '2023-12-01')
     update_cut = mds.DEFAULT_TRAINING_DATE_CUT
     early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True, verbose=1)
@@ -76,25 +95,31 @@ def create_models(df: pd.DataFrame, **kwargs) -> dict[str, keras.Model]:
     keras_list = list(PCA_models.keys())
     path = mds.MODELS_FOLDER
     for name in keras_list:
-        print(f'PCA , {name}')
+        announce(f'PCA , {name}')
         X_PCA, _, y_pca, _ = train_test_split(PCA_train, y_PCA, train_size=0.75)
         PCA_models[name].fit(X_PCA, y_pca, validation_data=(PCA_val, y_PCA_val), batch_size=batch_size, epochs=epochs, callbacks=[early_stop])
         metrics = get_model_metrics(PCA_models[name], PCA_test, y_PCA_test)
-        print(f' PCA model {name} metrics - MAE: {metrics[0]}, MSE: {metrics[1]}, RMSE: {metrics[2]}')
+        announce(f' PCA model {name} metrics - MAE: {metrics[0]}, MSE: {metrics[1]}, RMSE: {metrics[2]}')
         PCA_models[name].save(f'{path}/update_PCA_{name}.keras')
         with open(f'{path}/update_PCA_{name}_history.pkl', 'wb') as file:
             pickle.dump(PCA_models[name].history.history, file)
-        print(f'no_PCA , {name}')
+        announce(f'no_PCA , {name}')
         X, _, y, _ = train_test_split(train, y_no_PCA, train_size=0.75)
         no_PCA_models[name].fit(X, y, validation_data=(val, y_no_PCA_val), epochs=epochs, batch_size=batch_size, callbacks=[early_stop])
         metrics = get_model_metrics(no_PCA_models[name], test, y_no_PCA_test)
-        print(f' no PCA model {name} metrics - MAE: {metrics[0]}, MSE: {metrics[1]}, RMSE: {metrics[2]}')
+        announce(f' no PCA model {name} metrics - MAE: {metrics[0]}, MSE: {metrics[1]}, RMSE: {metrics[2]}')
         no_PCA_models[name].save(f'{path}/update_no_PCA_{name}.keras')
         with open(f'{path}/update_no_PCA_{name}_history.pkl', 'wb') as file:
             pickle.dump(no_PCA_models[name].history.history, file)
 
 
 def update_models(df: pd.DataFrame, **kwargs) -> dict[str, keras.Model]:
+    def announce(*text) -> None:
+        async_to_sync(channel_layer.group_send)('view_status', {'type': 'view_status_update', 'message': text})
+
+    consumer = ViewStatusConsumer()
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_add)('view_status', consumer.channel_name)
     models = load_models()
     n_models = len(models)
     history_cut = kwargs.get('history_cut', '2023-06-01')
@@ -145,7 +170,7 @@ def update_models(df: pd.DataFrame, **kwargs) -> dict[str, keras.Model]:
     idx = 1
 
     for name, model in sorted(models.items(), key=lambda x: random.random()):
-        print(name)
+        announce(name)
         if 'update' in name:
             if 'no_PCA' in name:
                 X, _, y, _ = train_test_split(train, y_no_PCA, train_size=0.75)
@@ -167,16 +192,17 @@ def update_models(df: pd.DataFrame, **kwargs) -> dict[str, keras.Model]:
         new_loss = model.evaluate(X_test, y_test)[0]
         if new_loss < loss:
             model.save(f'{path}/{name}')
-            print(f'{idx} out of {n_models}, model {name}, initial loss: {loss}, new loss: {new_loss} - model saved')
+            announce(f'{idx} out of {n_models}, model {name}, initial loss: {loss}, new loss: {new_loss} - model saved')
             num_of_updated += 1
         else:
-            print(f'{idx} out of {n_models}, model {name}, initial loss: {loss}, new loss: {new_loss} - model NOT saved')
+            announce(f'{idx} out of {n_models}, model {name}, initial loss: {loss}, new loss: {new_loss} - model NOT saved')
             num_of_not_updated += 1
         idx += 1
-    print(f'updated {num_of_updated} models, not updated {num_of_not_updated}')
+    announce(f'updated {num_of_updated} models, not updated {num_of_not_updated}')
 
 
 def get_models_list_for_prediction(models: list[keras.Model], df: pd.DataFrame) -> list[str]:
+    
     update_cut = mds.DEFAULT_TRAINING_DATE_CUT
     data = get_data(df.copy(), update_cut=update_cut, training=True, diff=False, just_PCA=False, update=True)
 
@@ -213,15 +239,22 @@ def get_models_list_for_prediction(models: list[keras.Model], df: pd.DataFrame) 
 
 def prediction(df: pd.DataFrame) -> pd.DataFrame:
 
-    print('Loading models')
+    consumer = ViewStatusConsumer()
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_add)('view_status', consumer.channel_name)
+    
+    def announce(*text) -> None:
+        async_to_sync(channel_layer.group_send)('view_status', {'type': 'view_status_update', 'message': text})
+        
+    announce('Loading models')
     models = load_models()
-    print('Models loaded')
-    print('Selecting best performing models')
+    announce('Models loaded')
+    announce('Selecting best performing models')
     models_list = get_models_list_for_prediction(models, df.copy())
     prediction_models = {name: models[name] for name in models_list}
-    print('Models selected')
+    announce('Models selected')
 
-    print('Making predictions')
+    announce('Making predictions')
     update_cut = mds.DEFAULT_TRAINING_DATE_CUT
     
     data = get_data(df.copy(), update_cut=update_cut, training=False, update=False)
@@ -235,9 +268,9 @@ def prediction(df: pd.DataFrame) -> pd.DataFrame:
             forecasts[name] = predict_arrival(update_data, model, PCA=PCA_status)
         else:
             forecasts[name] = predict_arrival(data, model, PCA=PCA_status)
-    print('Predictions made')
+    announce('Predictions made')
 
-    print('Compiling forecasts')
+    announce('Compiling forecasts')
     forecast = pd.concat(forecasts.values(), axis=0)
     forecast['update'] = pd.to_datetime(forecast['update'])
     forecast['arrival'] = pd.to_datetime(forecast['arrival'])
@@ -250,12 +283,14 @@ def prediction(df: pd.DataFrame) -> pd.DataFrame:
     for idx, row in stats.iterrows():
         pd_dt[idx] = row
     prediction = pd.DataFrame(pd_dt).T.reset_index(drop=True)
-    print('Forecasts compiled')
+    announce('Forecasts compiled')
     return prediction
 
 
 def show_models_metrics(df: pd.DataFrame) -> pd.DataFrame:
-
+    consumer = ViewStatusConsumer()
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_add)('view_status', consumer.channel_name)
     models = load_models()
     update_cut = mds.DEFAULT_TRAINING_DATE_CUT
     history_cut = '2023-06-01'
@@ -285,7 +320,7 @@ def show_models_metrics(df: pd.DataFrame) -> pd.DataFrame:
         metrics[name] = model.evaluate(X_test, y_test, batch_size=4096)
     metrics = pd.DataFrame(metrics, index=['LOSS', 'MAE', 'MSE']).T.sort_values('LOSS')
     table = tabulate(metrics, headers='keys', tablefmt='pipe')
-    print(f'resulting scores:\n{table}')
+    announce(f'resulting scores:\n{table}')
 
 
 if __name__ == "__main__":
