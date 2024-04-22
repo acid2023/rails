@@ -119,3 +119,6 @@ venv.bak/
 .envrc
 
 *.keras
+
+env_data
+.env

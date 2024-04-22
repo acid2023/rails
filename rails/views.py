@@ -4,7 +4,7 @@ from shapely.wkt import loads
 import urllib.parse
 import pickle
 import tempfile
-from asgiref.sync import async_to_sync 
+from asgiref.sync import async_to_sync
 
 from django.shortcuts import render
 from django.core.files.storage import FileSystemStorage
@@ -18,7 +18,7 @@ from channels.layers import get_channel_layer
 from rails.models import Station, Road
 from rails.utils.files_parse import process_xls_file
 from rails.data_preparation.data_loading import get_data_from_bd
-from rails.m_learning.modeling import create_models, update_models, prediction
+from rails.m_learning.modeling import create_models, update_models, prediction, show_models_metrics
 from rails.consumers import ViewStatusConsumer
 
 
@@ -74,7 +74,7 @@ def process_files(request: HttpRequest) -> HttpResponse:
         if source:
             problem_stations += process_xls_file(correct_filename, source)
         fs.delete(correct_filename)
-        async_to_sync(channel_layer.group_send)('view_status', 
+        async_to_sync(channel_layer.group_send)('view_status',
                                                 {'type': 'view_status_update',
                                                  'message': f'{filename} processed'})
     return render(request, 'processed.html', {'problem_stations': problem_stations})
@@ -88,7 +88,6 @@ def upload_xls_file(request: HttpRequest) -> HttpResponse:
         else:
             return uploaded_file.name
 
-
     if request.method == 'POST' and 'files' in request.FILES:
         uploaded_files = request.FILES.getlist('files')
         files = []
@@ -101,14 +100,13 @@ def upload_xls_file(request: HttpRequest) -> HttpResponse:
             for uploaded_file in uploaded_files:
                 uploaded_filename = get_filename(uploaded_file)
                 filename = urllib.parse.quote(uploaded_filename)
-                #print(filename)
                 file_path = os.path.join(temp_folder, filename)
                 uploaded_file_path = os.path.join(temp_folder, uploaded_filename)
                 files += [file_path]
                 fs.save(uploaded_file_path, uploaded_file)
 
         url = reverse('process_files') + '?files=' + ','.join(files)
-        #print('url ', url)
+
         return HttpResponseRedirect(url)
 
     return render(request, 'upload_xls.html')
@@ -118,7 +116,8 @@ def load_data(request: HttpRequest) -> HttpResponse:
     if request.method == 'GET':
         return render(request, 'data_load.html')
     elif request.method == 'POST':
-        routes = get_data_from_bd()
+        full_load = request.POST.get('full_load', False)
+        routes = get_data_from_bd(full=full_load)
         filename = 'rails/pkl_files/routes.pkl'
         with open(filename, 'wb') as f:
             pickle.dump(routes, f)
@@ -126,12 +125,18 @@ def load_data(request: HttpRequest) -> HttpResponse:
 
 
 def create_rails_models(request: HttpRequest) -> HttpResponse:
-    filename = 'rails/pkl_files/routes.pkl'
-    with open(filename, 'rb') as f:
-        routes = pickle.load(f)
-    create_models(routes)
+    consumer = ViewStatusConsumer()
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_add)('view_status', consumer.channel_name)
+    if request.method == 'GET':
+        return render(request, 'create_models.html')
+    elif request.method == 'POST':
+        filename = 'rails/pkl_files/routes.pkl'
+        with open(filename, 'rb') as f:
+            routes = pickle.load(f)
+        create_models(routes, channel_layer)
 
-    return HttpResponse('models created')
+        return HttpResponse('models created')
 
 
 def update_rails_models(request: HttpRequest) -> HttpResponse:
@@ -145,25 +150,47 @@ def update_rails_models(request: HttpRequest) -> HttpResponse:
         filename = 'rails/pkl_files/routes.pkl'
         with open(filename, 'rb') as f:
             routes = pickle.load(f)
-        update_models(routes)
+        update_models(routes, channel_layer)
 
         return HttpResponse('models updated')
 
 
 def make_prediction(request: HttpRequest) -> HttpResponse:
-    filename = 'rails/pkl_files/routes.pkl'
-    with open(filename, 'rb') as f:
-        routes = pickle.load(f)
-    forecast = prediction(routes)
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
-    forecast.to_excel(temp_file.name, index=False)
+    consumer = ViewStatusConsumer()
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_add)('view_status', consumer.channel_name)
 
-    with open(temp_file.name, 'rb') as f:
-        xlsx_content = f.read()
+    if request.method == 'GET':
+        return render(request, 'prediction.html')
+    elif request.method == 'POST':
+        filename = 'rails/pkl_files/routes.pkl'
+        with open(filename, 'rb') as f:
+            routes = pickle.load(f)
+        forecast = prediction(routes, channel_layer)
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
+        forecast.to_excel(temp_file.name, index=False)
 
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename="forecast.xlsx"'
-    response.content = xlsx_content
-    response.write('Forecast completed')
+        with open(temp_file.name, 'rb') as f:
+            xlsx_content = f.read()
+
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="forecast.xlsx"'
+        response.content = xlsx_content
+        response.write('Forecast completed')
 
     return response
+
+
+def show_metrics(request: HttpRequest) -> HttpResponse:
+    consumer = ViewStatusConsumer()
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_add)('view_status', consumer.channel_name)
+    if request.method == 'GET':
+        return render(request, 'metrics.html')
+    elif request.method == 'POST':
+        filename = 'rails/pkl_files/routes.pkl'
+        with open(filename, 'rb') as f:
+            routes = pickle.load(f)
+        metrics = show_models_metrics(routes, channel_layer)
+
+    return render(request, 'metrics.html', {'metrics': metrics})

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Show metrics</title>
+</head>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <button type="submit">Calculate Metrics</button>
+</form>
+<body>
+    <h1>Show metrics</h1>
+    <div id='metrics_table'>
+        <table>
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Loss</th>
+                    <th>MAE</th>
+                    <th>MSE</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for index, row in metrics.iterrows %}
+                    <tr>
+                        <td>{{ index }}</td>
+                        <td>{{ row.LOSS }}</td>
+                        <td>{{ row.MAE }}</td>
+                        <td>{{ row.MSE }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>  
+    
+    <div id="view-status"></div>
+    <script>
+        const socket = new WebSocket('ws://127.0.0.1:8000/ws/view_status/');
+        const statusElement = document.getElementById('view-status');
+        const messageList = document.createElement('ul');
+        let isNewLinePreviousLine = false;
+    
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+
+            const message = typeof data['message'] === 'string' ? data['message']: data['message'][0] ;
+
+            const isNewLine = message.includes('\r') || message.includes('\b');
+
+            if (isNewLinePreviousLine && isNewLine) {
+                messageList.removeChild(messageList.lastChild);
+            }
+
+            isNewLinePreviousLine = isNewLine;
+    
+            // Create a <li> element for each message and append it to the messageList
+            const messageItem = document.createElement('li');
+            messageItem.textContent = message;
+            messageList.appendChild(messageItem);   
+
+    
+            // Update the statusElement with the messageList
+            statusElement.innerHTML = ''; // Clear existing content
+            statusElement.appendChild(messageList);
+    
+            // Scroll to the bottom of the statusElement
+            statusElement.scrollTop = statusElement.scrollHeight;
+            setTimeout(() => {
+                statusElement.scrollTop = statusElement.scrollHeight;
+            }, 0);
+        };
+    </script>
+
+</body>
+</html>

@@ -1,4 +1,5 @@
 import pandas as pd
+import pickle
 from datetime import datetime
 from asgiref.sync import async_to_sync
 
@@ -22,19 +23,30 @@ def time_to_home(update: datetime | str, arrival: datetime | str) -> int:
     return difference.days
 
 
-def get_data_from_bd() -> pd.DataFrame:
+def get_data_from_bd(full: bool = True) -> pd.DataFrame:
     home_station = Station.objects.get(id=1071)
     home_routes = Route.objects.filter(end=home_station).exclude(start=home_station)
+    if not full:
+        filename = 'rails/pkl_files/routes.pkl'
+        with open(filename, 'rb') as f:
+            routes = pickle.load(f)
+        latest_update = routes.sort_values('update', ascending=True).tail(1)['update'].values[0]
+        routes_to_load = []
+        for route in home_routes:
+            if route.get_last_ops_date is not None:
+                if route.get_last_ops_date > latest_update:
+                    routes_to_load.append(route)
+    else:
+        routes = pd.DataFrame(columns=['num', 'update', 'route', 'route_id', 'station', 'station_id',
+                                       'lat', 'lon', 'd_left', 'time_to_home', 'start_date', 'arrival'])
+        routes_to_load = home_routes
 
-    routes = pd.DataFrame(columns=['num', 'update', 'route', 'route_id', 'station', 'station_id',
-                                   'lat', 'lon', 'd_left', 'time_to_home', 'start_date', 'arrival'])
-
-    total = len(home_routes)
+    total = len(routes_to_load)
     consumer = ViewStatusConsumer()
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_add)('view_status', consumer.channel_name)
 
-    for idx, route in enumerate(home_routes):
+    for idx, route in enumerate(routes_to_load):
         message = f" processing {idx+1} of {total} - route {route}"
         async_to_sync(channel_layer.group_send)('view_status', {'type': 'view_status_update', 'message': message})
 

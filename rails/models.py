@@ -121,10 +121,10 @@ class Route(models.Model):
 
     @property
     def get_last_ops_date(self) -> str | None:
-        if self.locations is None:
+        if self.locations is None or len(self.locations) == 0:
             self.locations = {}
             return None
-        sorted_keys = sorted(self.locations.keys())
+        sorted_keys = list(sorted(self.locations.keys()))
         last_key = sorted_keys[-1]
         return self.locations[last_key].get('ops_date', None)
 
